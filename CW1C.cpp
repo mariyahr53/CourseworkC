@@ -1,20 +1,58 @@
+#include "ModuleCatalog.h"
+#include "TranscriptManager.h"
+
+#include <fstream>
 #include <iostream>
-#include <vector>
-#include <algorithm>    
+#include <optional>
+#include <sstream>
+#include <string>
 
 int main() {
-    std::vector<int> numbers = {5, 2, 9, 1, 5, 6};
-
-    // Sort the vector in ascending order
-    std::sort(numbers.begin(), numbers.end());
-
-    // Print the sorted vector
-    std::cout << "Sorted numbers: ";
-    for (const int& num : numbers) {
-        std::cout << num << " ";
+    ModuleCatalog catalog;
+    if (!catalog.loadFromFile("modules.txt")) {
+        std::cerr << "Failed to open modules.txt" << std::endl;
+        return 1;
     }
-    std::cout << std::endl;
+
+    TranscriptManager manager(catalog);
+    if (!manager.loadGrades("grades.txt")) {
+        std::cerr << "Failed to open grades.txt" << std::endl;
+        return 1;
+    }
+
+    std::ifstream requestsFile("requests.txt");
+    if (!requestsFile.is_open()) {
+        std::cerr << "Failed to open requests.txt" << std::endl;
+        return 1;
+    }
+
+    std::string line;
+    bool firstOutput = true;
+    while (std::getline(requestsFile, line)) {
+        if (line.empty()) {
+            continue;
+        }
+
+        std::stringstream ss(line);
+        std::string studentId;
+        int termCode;
+
+        if (!(ss >> studentId)) {
+            continue;
+        }
+
+        std::optional<int> termFilter;
+        if (ss >> termCode) {
+            termFilter = termCode;
+        }
+
+        if (!firstOutput) {
+            std::cout << '\n';
+        }
+        firstOutput = false;
+
+        manager.printTranscript(studentId, termFilter);
+    }
 
     return 0;
 }
-
